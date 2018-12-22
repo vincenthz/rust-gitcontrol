@@ -66,7 +66,7 @@ fn read_db(home: &PathBuf, user: User) -> Result<UserDb, Error> {
     config_path.push(home);
     config_path.push("gitcontrol.cfg");
 
-    println!("path: {:?}", config_path);
+    //println!("path: {:?}", config_path);
 
     let file = File::open(config_path)?;
     // true if this is the current user
@@ -143,7 +143,7 @@ impl GitCommand {
 
 fn repository_of_path(s: &str) -> Result<Repo, Error> {
     if s.starts_with("'") && s.ends_with("'") {
-        Repo::from_string(s[1..(s.len()-2)].into())
+        Repo::from_string(s[1..(s.len()-1)].into())
     } else {
         Repo::from_string(s.into())
     }
@@ -165,9 +165,9 @@ fn main() {
     }
 
     /*
-    const print_db : bool = false;
+    const print_db : bool = true;
     if print_db {
-        for (ref r,ref p) in db.repos {
+        for (ref r,ref p) in db.repos.clone() {
             println!("{:?} {:?}", r, p)
         }
     }
