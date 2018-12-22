@@ -1,5 +1,5 @@
 [package]
-name = "gitcontrol"
+name = "gitcontrol-shell"
 version = "0.1.0"
 authors = ["Vincent Hanquez <vincent@typed.io>"]
 edition = "2018"
