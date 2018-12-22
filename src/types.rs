@@ -50,8 +50,8 @@ impl Repo {
         Ok(Repo([dir.to_string(), repo.to_string()]))
     }
 
-    pub fn to_path(&self, prefix: PathBuf) -> PathBuf {
-        [prefix, self.0[0].clone().into(), self.0[1].clone().into()].iter().collect()
+    pub fn to_path(&self, prefix: &PathBuf) -> PathBuf {
+        [prefix.clone(), self.0[0].clone().into(), self.0[1].clone().into()].iter().collect()
     }
 }
 

@@ -3,6 +3,7 @@ use std::process::Command;
 use std::os::unix::process::CommandExt;
 use std::collections::BTreeMap;
 use std::fs::File;
+use std::path::PathBuf;
 use std::io;
 use std::io::BufRead;
 
@@ -58,10 +59,16 @@ fn fail_optional<A>(e: Option<A>, s: &'static str) -> A {
 // r repo
 // # comment
 
-fn read_db(user: User) -> Result<UserDb, Error> {
+fn read_db(home: &PathBuf, user: User) -> Result<UserDb, Error> {
     let mut repos = BTreeMap::new();
 
-    let file = File::open("gitcontrol.cfg")?;
+    let mut config_path = PathBuf::new();
+    config_path.push(home);
+    config_path.push("gitcontrol.cfg");
+
+    println!("path: {:?}", config_path);
+
+    let file = File::open(config_path)?;
     // true if this is the current user
     let mut on_user = false;
 
@@ -116,18 +123,17 @@ impl GitCommand {
         }
     }
 
-    pub fn execute(&self) {
-        let home = fail_optional(env::home_dir(), "HOME environment");
+    pub fn execute(&self, home: PathBuf) {
         let mut command = match self {
             GitCommand::GitReceivePack(_) => Command::new("git-receive-pack"),
             GitCommand::GitUploadPack(_) => Command::new("git-upload-pack"),
         };
         match self {
             GitCommand::GitReceivePack(repo) => {
-                command.args(&[repo.to_path(home)])
+                command.args(&[repo.to_path(&home)])
             },
             GitCommand::GitUploadPack(repo) => {
-                command.args(&[repo.to_path(home)])
+                command.args(&[repo.to_path(&home)])
             }
         };
         let e = command.exec();
@@ -144,13 +150,14 @@ fn repository_of_path(s: &str) -> Result<Repo, Error> {
 }
 
 fn main() {
+    let home = fail_optional(env::home_dir(), "HOME environment");
     let args : Vec<String> = env::args().collect();
     let user = fail(match &args[..] {
         [] => Err(Error::UsageInvalid("no arguments")),
         [_,y] => User::from_string(y.clone()),
         _ => Err(Error::UsageInvalid("too many arguments")),
     }, "reading user argument");
-    let db = fail(read_db(user), "cannot read db file");
+    let db = fail(read_db(&home, user), "cannot read db file");
 
     if db.is_empty() {
         println!("user not found (or empty)");
@@ -182,5 +189,5 @@ fn main() {
             process::exit(1)
         };
     fail(cmd.check_permission(&db), "permission check");
-    cmd.execute()
+    cmd.execute(home)
 }
