@@ -2,7 +2,7 @@ use super::errors::Error;
 use std::path::PathBuf;
 
 fn pattern_not_accepted(c: char) -> bool {
-    !c.is_alphanumeric()
+    !(c.is_alphanumeric() || c == '-' || c == '_')
 }
 
 #[derive(Clone,PartialEq,Eq,PartialOrd,Ord)]
