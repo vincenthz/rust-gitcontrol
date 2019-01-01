@@ -54,14 +54,10 @@ pub fn read_db(config_path: &PathBuf, user: User) -> Result<UserDb, Error> {
             None => {},
             Some(c) => {
                 if c == '@' {
-                    if on_user {
-                        on_user = false
-                    } else {
-                        on_user = user.is_eq(&s[1..]);
-                    }
+                    on_user = user.is_eq(&s[1..]);
                 } else {
-                    if !on_user { break; }
-                    if c == '#' { break; }
+                    if !on_user { continue; }
+                    if c == '#' { continue; }
 
                     let permission = Permission::from_char(c)?;
 
