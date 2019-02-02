@@ -14,14 +14,14 @@ use crate::userdb::{UserDb, read_db};
 fn fail<A>(e: Result<A, Error>, s: &'static str) -> A {
     match e {
         Ok(a) => a,
-        Err(e) => { println!("{}: {}", s, e); process::exit(1) }
+        Err(e) => { eprintln!("{}: {}", s, e); process::exit(1) }
     }
 }
 
 fn fail_optional<A>(e: Option<A>, s: &'static str) -> A {
     match e {
         Some(a) => a,
-        None => { println!("{}: value not found", s); process::exit(1) }
+        None => { eprintln!("{}: value not found", s); process::exit(1) }
     }
 }
 
@@ -102,7 +102,7 @@ fn normal(user: User) {
     let db = fail(read_db(&config_path, user), "cannot read db file");
 
     if db.is_empty() {
-        println!("user not found (or empty)");
+        eprintln!("user not found (or empty)");
         process::exit(1)
     }
 
@@ -118,7 +118,7 @@ fn normal(user: User) {
             let repo = fail(repository_of_path(s), "path of repository invalid");
             GitCommand::GitUploadPack(repo)
         } else {
-            println!("unknown command {}", cmd_str);
+            eprintln!("unknown command {}", cmd_str);
             process::exit(1)
         };
     fail(cmd.check_permission(&db), "permission check");
@@ -128,7 +128,7 @@ fn normal(user: User) {
 fn debug(config_path: PathBuf, ouser: Option<User>) {
     match ouser {
         None => {
-            println!("not implemented")
+            eprintln!("not implemented")
         },
         Some(user) => {
             let db = fail(read_db(&config_path, user), "cannot read db file");
