@@ -11,17 +11,49 @@ use crate::errors::Error;
 use crate::types::{User, Repo};
 use crate::userdb::{UserDb, read_db};
 
-fn fail<A>(e: Result<A, Error>, s: &'static str) -> A {
-    match e {
-        Ok(a) => a,
-        Err(e) => { eprintln!("{}: {}", s, e); process::exit(1) }
+enum ErrorCode {
+    FailedReadingCmdArgs = 1,
+    NoHomeEnvironment = 2,
+    ExecutingCommandFailed = 3,
+    UserNotFound = 4,
+    NoSshOriginalCommand = 5,
+    PathOfRepositoryInvalid = 6,
+    UnknownGitCommand = 7,
+    PermissionCheckFailed = 8,
+    CannotReadDbFile = 9,
+}
+
+impl ErrorCode {
+    fn print(&self) -> &'static str {
+        match self {
+            ErrorCode::FailedReadingCmdArgs => "failed reading command arguments",
+            ErrorCode::NoHomeEnvironment => "no HOME environment found",
+            ErrorCode::ExecutingCommandFailed => "executing command failed",
+            ErrorCode::UserNotFound => "user not found",
+            ErrorCode::NoSshOriginalCommand => "no SSH_ORIGINAL_COMMAND found",
+            ErrorCode::PathOfRepositoryInvalid => "path of repository invalid",
+            ErrorCode::UnknownGitCommand => "unknown git command",
+            ErrorCode::PermissionCheckFailed => "Permission insufficient",
+            ErrorCode::CannotReadDbFile => "cannot read db file",
+        }
+    }
+
+    fn exit(self) -> ! {
+        process::exit(self as i32)
     }
 }
 
-fn fail_optional<A>(e: Option<A>, s: &'static str) -> A {
+fn fail<A>(e: Result<A, Error>, s: ErrorCode) -> A {
+    match e {
+        Ok(a) => a,
+        Err(e) => { eprintln!("{}: {}", s.print(), e); s.exit() }
+    }
+}
+
+fn fail_optional<A>(e: Option<A>, s: ErrorCode) -> A {
     match e {
         Some(a) => a,
-        None => { eprintln!("{}: value not found", s); process::exit(1) }
+        None => { eprintln!("{}: value not found", s.print()); s.exit() }
     }
 }
 
@@ -60,7 +92,7 @@ impl GitCommand {
             }
         };
         let e = command.exec();
-        fail::<()>(Err(e.into()), "executing command")
+        fail::<()>(Err(e.into()), ErrorCode::ExecutingCommandFailed)
     }
 }
 
@@ -97,31 +129,31 @@ pub enum Mode {
 }
 
 fn normal(user: User) {
-    let home = fail_optional(env::home_dir(), "HOME environment");
+    let home = fail_optional(env::home_dir(), ErrorCode::NoHomeEnvironment);
     let config_path = gitcontrol_config_path(&home);
-    let db = fail(read_db(&config_path, user), "cannot read db file");
+    let db = fail(read_db(&config_path, user), ErrorCode::CannotReadDbFile);
 
     if db.is_empty() {
         eprintln!("user not found (or empty)");
-        process::exit(1)
+        ErrorCode::UserNotFound.exit()
     }
 
-    let cmd_str = fail(env::var("SSH_ORIGINAL_COMMAND").map_err(|e| e.into()), "getting SSH_ORIGINAL_COMMAND");
+    let cmd_str = fail(env::var("SSH_ORIGINAL_COMMAND").map_err(|e| e.into()), ErrorCode::NoSshOriginalCommand);
 
     let cmd =
         if cmd_str.starts_with(GIT_RECEIVE_PACK) {
             let s = &cmd_str[GIT_RECEIVE_PACK.len()..];
-            let repo = fail(repository_of_path(s), "path of repository invalid");
+            let repo = fail(repository_of_path(s), ErrorCode::PathOfRepositoryInvalid);
             GitCommand::GitReceivePack(repo)
         } else if cmd_str.starts_with(GIT_UPLOAD_PACK) {
             let s = &cmd_str[GIT_UPLOAD_PACK.len()..];
-            let repo = fail(repository_of_path(s), "path of repository invalid");
+            let repo = fail(repository_of_path(s), ErrorCode::PathOfRepositoryInvalid);
             GitCommand::GitUploadPack(repo)
         } else {
             eprintln!("unknown command {}", cmd_str);
-            process::exit(1)
+            ErrorCode::UnknownGitCommand.exit()
         };
-    fail(cmd.check_permission(&db), "permission check");
+    fail(cmd.check_permission(&db), ErrorCode::PermissionCheckFailed);
     cmd.execute(home)
 }
 
@@ -131,7 +163,7 @@ fn debug(config_path: PathBuf, ouser: Option<User>) {
             eprintln!("not implemented")
         },
         Some(user) => {
-            let db = fail(read_db(&config_path, user), "cannot read db file");
+            let db = fail(read_db(&config_path, user), ErrorCode::CannotReadDbFile);
             for (ref r,ref p) in db.repos {
                 println!("{:?} {:?}", r, p)
             }
@@ -167,7 +199,7 @@ fn parse_argument(args: &Vec<String>) -> Result<Mode, Error> {
 
 fn main() {
     let args : Vec<String> = env::args().collect();
-    let mode = fail(parse_argument(&args), "reading user arguments");
+    let mode = fail(parse_argument(&args), ErrorCode::FailedReadingCmdArgs);
 
     match mode {
         Mode::Normal(user) => normal(user),
