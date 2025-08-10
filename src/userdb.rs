@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 use std::fs::File;
-use std::path::PathBuf;
 use std::io;
 use std::io::BufRead;
+use std::path::PathBuf;
 
 use crate::errors::Error;
-use crate::types::{User, Repo, Permission};
+use crate::types::{Permission, Repo, User};
 
 pub struct UserDb {
     pub repos: BTreeMap<Repo, Permission>,
@@ -51,23 +51,29 @@ pub fn read_db(config_path: &PathBuf, user: User) -> Result<UserDb, Error> {
         let s = line?;
         let mut cs = s.chars();
         match cs.next() {
-            None => {},
+            None => {}
             Some(c) => {
                 if c == '@' {
                     on_user = user.is_eq(&s[1..]);
                 } else {
-                    if !on_user { continue; }
-                    if c == '#' { continue; }
+                    if !on_user {
+                        continue;
+                    }
+                    if c == '#' {
+                        continue;
+                    }
 
                     let permission = Permission::from_char(c)?;
 
                     let v = cs.next().unwrap();
-                    if v != ' ' { panic!("expecting space after permission {:?}", permission) }
+                    if v != ' ' {
+                        panic!("expecting space after permission {:?}", permission)
+                    }
 
                     let repo = cs.collect();
                     repos.insert(Repo::from_string(repo)?, permission);
                 }
-            },
+            }
         }
     }
 

@@ -1,15 +1,15 @@
-use std::{env, process};
-use std::process::Command;
 use std::os::unix::process::CommandExt;
 use std::path::PathBuf;
+use std::process::Command;
+use std::{env, process};
 
-mod types;
 mod errors;
+mod types;
 mod userdb;
 
 use crate::errors::Error;
-use crate::types::{User, Repo};
-use crate::userdb::{UserDb, read_db};
+use crate::types::{Repo, User};
+use crate::userdb::{read_db, UserDb};
 
 enum ErrorCode {
     FailedReadingCmdArgs = 1,
@@ -46,19 +46,25 @@ impl ErrorCode {
 fn fail<A>(e: Result<A, Error>, s: ErrorCode) -> A {
     match e {
         Ok(a) => a,
-        Err(e) => { eprintln!("{}: {}", s.print(), e); s.exit() }
+        Err(e) => {
+            eprintln!("{}: {}", s.print(), e);
+            s.exit()
+        }
     }
 }
 
 fn fail_optional<A>(e: Option<A>, s: ErrorCode) -> A {
     match e {
         Some(a) => a,
-        None => { eprintln!("{}: value not found", s.print()); s.exit() }
+        None => {
+            eprintln!("{}: value not found", s.print());
+            s.exit()
+        }
     }
 }
 
-const GIT_RECEIVE_PACK : &'static str = "git-receive-pack ";
-const GIT_UPLOAD_PACK : &'static str = "git-upload-pack ";
+const GIT_RECEIVE_PACK: &'static str = "git-receive-pack ";
+const GIT_UPLOAD_PACK: &'static str = "git-upload-pack ";
 
 #[derive(Debug)]
 enum GitCommand {
@@ -70,10 +76,18 @@ impl GitCommand {
     pub fn check_permission(&self, db: &UserDb) -> Result<(), Error> {
         match self {
             GitCommand::GitReceivePack(repo) => {
-                if !db.can_read(&repo) { Err(Error::AccessDenied("no read permission")) } else { Ok(()) }
+                if !db.can_read(&repo) {
+                    Err(Error::AccessDenied("no read permission"))
+                } else {
+                    Ok(())
+                }
             }
             GitCommand::GitUploadPack(repo) => {
-                if !db.can_write(&repo) { Err(Error::AccessDenied("no write permission")) } else { Ok(()) }
+                if !db.can_write(&repo) {
+                    Err(Error::AccessDenied("no write permission"))
+                } else {
+                    Ok(())
+                }
             }
         }
     }
@@ -84,12 +98,8 @@ impl GitCommand {
             GitCommand::GitUploadPack(_) => Command::new("git-upload-pack"),
         };
         match self {
-            GitCommand::GitReceivePack(repo) => {
-                command.args(&[repo.to_path(&home)])
-            },
-            GitCommand::GitUploadPack(repo) => {
-                command.args(&[repo.to_path(&home)])
-            }
+            GitCommand::GitReceivePack(repo) => command.args(&[repo.to_path(&home)]),
+            GitCommand::GitUploadPack(repo) => command.args(&[repo.to_path(&home)]),
         };
         let e = command.exec();
         fail::<()>(Err(e.into()), ErrorCode::ExecutingCommandFailed)
@@ -110,7 +120,7 @@ fn read_git_control(repo: PathBuf) -> process::Output {
 
 fn repository_of_path(s: &str) -> Result<Repo, Error> {
     if s.starts_with("'") && s.ends_with("'") {
-        Repo::from_string(s[1..(s.len()-1)].into())
+        Repo::from_string(s[1..(s.len() - 1)].into())
     } else {
         Repo::from_string(s.into())
     }
@@ -138,21 +148,23 @@ fn normal(user: User) {
         ErrorCode::UserNotFound.exit()
     }
 
-    let cmd_str = fail(env::var("SSH_ORIGINAL_COMMAND").map_err(|e| e.into()), ErrorCode::NoSshOriginalCommand);
+    let cmd_str = fail(
+        env::var("SSH_ORIGINAL_COMMAND").map_err(|e| e.into()),
+        ErrorCode::NoSshOriginalCommand,
+    );
 
-    let cmd =
-        if cmd_str.starts_with(GIT_RECEIVE_PACK) {
-            let s = &cmd_str[GIT_RECEIVE_PACK.len()..];
-            let repo = fail(repository_of_path(s), ErrorCode::PathOfRepositoryInvalid);
-            GitCommand::GitReceivePack(repo)
-        } else if cmd_str.starts_with(GIT_UPLOAD_PACK) {
-            let s = &cmd_str[GIT_UPLOAD_PACK.len()..];
-            let repo = fail(repository_of_path(s), ErrorCode::PathOfRepositoryInvalid);
-            GitCommand::GitUploadPack(repo)
-        } else {
-            eprintln!("unknown command {}", cmd_str);
-            ErrorCode::UnknownGitCommand.exit()
-        };
+    let cmd = if cmd_str.starts_with(GIT_RECEIVE_PACK) {
+        let s = &cmd_str[GIT_RECEIVE_PACK.len()..];
+        let repo = fail(repository_of_path(s), ErrorCode::PathOfRepositoryInvalid);
+        GitCommand::GitReceivePack(repo)
+    } else if cmd_str.starts_with(GIT_UPLOAD_PACK) {
+        let s = &cmd_str[GIT_UPLOAD_PACK.len()..];
+        let repo = fail(repository_of_path(s), ErrorCode::PathOfRepositoryInvalid);
+        GitCommand::GitUploadPack(repo)
+    } else {
+        eprintln!("unknown command {}", cmd_str);
+        ErrorCode::UnknownGitCommand.exit()
+    };
     fail(cmd.check_permission(&db), ErrorCode::PermissionCheckFailed);
     cmd.execute(home)
 }
@@ -161,10 +173,10 @@ fn debug(config_path: PathBuf, ouser: Option<User>) {
     match ouser {
         None => {
             eprintln!("not implemented")
-        },
+        }
         Some(user) => {
             let db = fail(read_db(&config_path, user), ErrorCode::CannotReadDbFile);
-            for (ref r,ref p) in db.repos {
+            for (ref r, ref p) in db.repos {
                 println!("{:?} {:?}", r, p)
             }
         }
@@ -198,12 +210,11 @@ fn parse_argument(args: &Vec<String>) -> Result<Mode, Error> {
 }
 
 fn main() {
-    let args : Vec<String> = env::args().collect();
+    let args: Vec<String> = env::args().collect();
     let mode = fail(parse_argument(&args), ErrorCode::FailedReadingCmdArgs);
 
     match mode {
         Mode::Normal(user) => normal(user),
         Mode::Debug(cfg, ouser) => debug(cfg, ouser),
     }
-
 }
