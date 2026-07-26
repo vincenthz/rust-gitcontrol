@@ -9,7 +9,7 @@ mod userdb;
 
 use crate::errors::Error;
 use crate::types::{Repo, User};
-use crate::userdb::{read_db, UserDb};
+use crate::userdb::{UserDb, read_db};
 
 enum ErrorCode {
     FailedReadingCmdArgs = 1,
