@@ -10,31 +10,31 @@ pub enum Error {
     RepoInvalid((String, &'static str)),
     PermissionInvalid(char),
     AccessDenied(&'static str),
-    IoError(io::Error),
+    Io(io::Error),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            &Error::UsageInvalid(s) => {
+            Error::UsageInvalid(s) => {
                 write!(f, "Usage invalid: {}", s)
             }
-            &Error::VarError(ref s) => {
+            Error::VarError(s) => {
                 write!(f, "Var error: {}", s)
             }
-            &Error::UserInvalid(ref s) => {
+            Error::UserInvalid(s) => {
                 write!(f, "User Invalid {}", s)
             }
-            &Error::RepoInvalid((ref s, t)) => {
+            Error::RepoInvalid((s, t)) => {
                 write!(f, "Repo Invalid \"{}\": {}", s, t)
             }
-            &Error::PermissionInvalid(ref s) => {
+            Error::PermissionInvalid(s) => {
                 write!(f, "Permission Invalid {}", s)
             }
-            &Error::AccessDenied(s) => {
+            Error::AccessDenied(s) => {
                 write!(f, "Access denied {}", s)
             }
-            &Error::IoError(ref i) => {
+            Error::Io(i) => {
                 write!(f, "io error {:?}", i)
             }
         }
@@ -42,7 +42,7 @@ impl fmt::Display for Error {
 }
 impl From<io::Error> for Error {
     fn from(e: io::Error) -> Error {
-        Error::IoError(e)
+        Error::Io(e)
     }
 }
 impl From<env::VarError> for Error {

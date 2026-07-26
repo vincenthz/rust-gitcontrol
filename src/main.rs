@@ -63,8 +63,8 @@ fn fail_optional<A>(e: Option<A>, s: ErrorCode) -> A {
     }
 }
 
-const GIT_RECEIVE_PACK: &'static str = "git-receive-pack ";
-const GIT_UPLOAD_PACK: &'static str = "git-upload-pack ";
+const GIT_RECEIVE_PACK: &str = "git-receive-pack ";
+const GIT_UPLOAD_PACK: &str = "git-upload-pack ";
 
 #[derive(Debug)]
 enum GitCommand {
@@ -76,14 +76,14 @@ impl GitCommand {
     pub fn check_permission(&self, db: &UserDb) -> Result<(), Error> {
         match self {
             GitCommand::GitReceivePack(repo) => {
-                if !db.can_read(&repo) {
+                if !db.can_read(repo) {
                     Err(Error::AccessDenied("no read permission"))
                 } else {
                     Ok(())
                 }
             }
             GitCommand::GitUploadPack(repo) => {
-                if !db.can_write(&repo) {
+                if !db.can_write(repo) {
                     Err(Error::AccessDenied("no write permission"))
                 } else {
                     Ok(())
@@ -153,12 +153,10 @@ fn normal(user: User) {
         ErrorCode::NoSshOriginalCommand,
     );
 
-    let cmd = if cmd_str.starts_with(GIT_RECEIVE_PACK) {
-        let s = &cmd_str[GIT_RECEIVE_PACK.len()..];
+    let cmd = if let Some(s) = cmd_str.strip_prefix(GIT_RECEIVE_PACK) {
         let repo = fail(repository_of_path(s), ErrorCode::PathOfRepositoryInvalid);
         GitCommand::GitReceivePack(repo)
-    } else if cmd_str.starts_with(GIT_UPLOAD_PACK) {
-        let s = &cmd_str[GIT_UPLOAD_PACK.len()..];
+    } else if let Some(s) = cmd_str.strip_prefix(GIT_UPLOAD_PACK) {
         let repo = fail(repository_of_path(s), ErrorCode::PathOfRepositoryInvalid);
         GitCommand::GitUploadPack(repo)
     } else {
@@ -183,7 +181,7 @@ fn debug(config_path: PathBuf, ouser: Option<User>) {
     }
 }
 
-fn parse_argument(args: &Vec<String>) -> Result<Mode, Error> {
+fn parse_argument(args: &[String]) -> Result<Mode, Error> {
     if args.len() < 2 {
         return Err(Error::UsageInvalid("no arguments"));
     }

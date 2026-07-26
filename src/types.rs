@@ -1,5 +1,5 @@
 use super::errors::Error;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn pattern_not_accepted(c: char) -> bool {
     !(c.is_alphanumeric() || c == '-' || c == '_')
@@ -56,9 +56,9 @@ impl Repo {
         Ok(Repo([dir.to_string(), repo.to_string()]))
     }
 
-    pub fn to_path(&self, prefix: &PathBuf) -> PathBuf {
+    pub fn to_path(&self, prefix: &Path) -> PathBuf {
         [
-            prefix.clone(),
+            prefix.to_path_buf(),
             self.0[0].clone().into(),
             self.0[1].clone().into(),
         ]
