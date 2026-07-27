@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
-use std::path::PathBuf;
+use std::path::Path;
 
 use crate::errors::Error;
 use crate::types::{Permission, Repo, User};
@@ -38,7 +38,7 @@ impl UserDb {
 // r repo
 // # comment
 
-pub fn read_db(config_path: &PathBuf, user: User) -> Result<UserDb, Error> {
+pub fn read_db(config_path: &Path, user: User) -> Result<UserDb, Error> {
     let mut repos = BTreeMap::new();
 
     //println!("path: {:?}", config_path);

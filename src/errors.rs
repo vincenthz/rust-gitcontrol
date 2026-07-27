@@ -11,6 +11,11 @@ pub enum Error {
     PermissionInvalid(char),
     AccessDenied(&'static str),
     Io(io::Error),
+    UserExists(String),
+    UserUnknown(String),
+    RepoExists(String),
+    ConfigInvalid(String),
+    CommandFailed(String),
 }
 
 impl fmt::Display for Error {
@@ -36,6 +41,21 @@ impl fmt::Display for Error {
             }
             Error::Io(i) => {
                 write!(f, "io error {:?}", i)
+            }
+            Error::UserExists(s) => {
+                write!(f, "user already exists: {}", s)
+            }
+            Error::UserUnknown(s) => {
+                write!(f, "unknown user: {}", s)
+            }
+            Error::RepoExists(s) => {
+                write!(f, "repository already exists: {}", s)
+            }
+            Error::ConfigInvalid(s) => {
+                write!(f, "invalid config: {}", s)
+            }
+            Error::CommandFailed(s) => {
+                write!(f, "command failed: {}", s)
             }
         }
     }

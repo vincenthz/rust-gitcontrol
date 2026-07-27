@@ -1,11 +1,12 @@
 use super::errors::Error;
+use std::fmt;
 use std::path::{Path, PathBuf};
 
 fn pattern_not_accepted(c: char) -> bool {
     !(c.is_alphanumeric() || c == '-' || c == '_')
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct User(String);
 
 impl User {
@@ -19,6 +20,16 @@ impl User {
     pub fn is_eq(&self, s: &str) -> bool {
         self.0 == s
     }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for User {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -29,14 +40,14 @@ impl Repo {
         if !s.is_ascii() {
             return Err(Error::RepoInvalid((s, "repo contains non ASCII")));
         }
-        if s.starts_with("/") {
+        if s.starts_with('/') {
             return Err(Error::RepoInvalid((s, "repo starts with /")));
         }
-        if s.starts_with(".") {
+        if s.starts_with('.') {
             return Err(Error::RepoInvalid((s, "repo starts with .")));
         }
 
-        let ss: Vec<&str> = s.splitn(2, "/").collect();
+        let ss: Vec<&str> = s.splitn(2, '/').collect();
         if ss.len() < 2 {
             return Err(Error::RepoInvalid((s, "not enough /")));
         } else if ss.len() > 2 {
@@ -65,6 +76,22 @@ impl Repo {
         .iter()
         .collect()
     }
+
+    /// the top-level directory component (the part before the `/`)
+    pub fn dir(&self) -> &str {
+        &self.0[0]
+    }
+
+    /// the repository component (the part after the `/`)
+    pub fn name(&self) -> &str {
+        &self.0[1]
+    }
+}
+
+impl fmt::Display for Repo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}/{}", self.0[0], self.0[1])
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -79,6 +106,22 @@ impl Permission {
             'r' => Ok(Permission::Read),
             'w' => Ok(Permission::Write),
             _ => Err(Error::PermissionInvalid(c)),
+        }
+    }
+
+    pub fn to_char(self) -> char {
+        match self {
+            Permission::Read => 'r',
+            Permission::Write => 'w',
+        }
+    }
+}
+
+impl fmt::Display for Permission {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Permission::Read => write!(f, "read"),
+            Permission::Write => write!(f, "write"),
         }
     }
 }

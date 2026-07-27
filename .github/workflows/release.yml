@@ -7,7 +7,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  BIN_NAME: gitcontrol-shell
   CRATE_NAME: gitcontrol-shell
 
 permissions:
@@ -37,15 +36,18 @@ jobs:
           targets: ${{ matrix.target }}
       - uses: taiki-e/install-action@cross
 
-      - name: Build release binary
-        run: cross rustc --bin "$BIN_NAME" --target ${{ matrix.target }} --release -- -C lto
+      - name: Build release binaries
+        run: |
+          cross rustc --bin gitcontrol-shell --target ${{ matrix.target }} --release -- -C lto
+          cross rustc --bin gitcontrol --target ${{ matrix.target }} --release -- -C lto
 
       - name: Package
         id: package
         run: |
           set -euo pipefail
           stage=$(mktemp -d)
-          cp "target/${{ matrix.target }}/release/$BIN_NAME" "$stage/"
+          cp "target/${{ matrix.target }}/release/gitcontrol-shell" "$stage/"
+          cp "target/${{ matrix.target }}/release/gitcontrol" "$stage/"
           archive="$CRATE_NAME-${GITHUB_REF_NAME}-${{ matrix.target }}.tar.gz"
           tar czf "$archive" -C "$stage" .
           rm -rf "$stage"

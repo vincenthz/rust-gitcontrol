@@ -1,15 +1,11 @@
 use std::os::unix::process::CommandExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, process};
 
-mod errors;
-mod types;
-mod userdb;
-
-use crate::errors::Error;
-use crate::types::{Repo, User};
-use crate::userdb::{UserDb, read_db};
+use gitcontrol_shell::errors::Error;
+use gitcontrol_shell::types::{Repo, User};
+use gitcontrol_shell::userdb::{UserDb, read_db};
 
 enum ErrorCode {
     FailedReadingCmdArgs = 1,
@@ -119,14 +115,14 @@ fn read_git_control(repo: PathBuf) -> process::Output {
 */
 
 fn repository_of_path(s: &str) -> Result<Repo, Error> {
-    if s.starts_with("'") && s.ends_with("'") {
+    if s.starts_with('\'') && s.ends_with('\'') {
         Repo::from_string(s[1..(s.len() - 1)].into())
     } else {
         Repo::from_string(s.into())
     }
 }
 
-fn gitcontrol_config_path(home: &PathBuf) -> PathBuf {
+fn gitcontrol_config_path(home: &Path) -> PathBuf {
     let mut config_path = PathBuf::new();
     config_path.push(home);
     config_path.push("gitcontrol.cfg");
